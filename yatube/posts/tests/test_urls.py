@@ -30,7 +30,7 @@ class TaskURLTests(TestCase):
             description='test description',
         )
         cls.post = Post.objects.create(
-            author=cls.user,
+            author=cls.user2,
             text='test post',
         )
 
@@ -57,7 +57,7 @@ class TaskURLTests(TestCase):
                 self.assertTemplateUsed(response, template)
 
     def test_index_page_not_login_user(self):
-        """Главная страница доступна неавторизированному пользователю."""
+        """Главная страница доступна гостю."""
         index_page = '/'
         response = self.guest.get(index_page)
         self.assertEqual(response.status_code, HTTPStatus.OK)
