@@ -10,25 +10,25 @@ from ..models import Group, Post
 User = get_user_model()
 
 
-class PostsURLTests(TestCase):
+class PostsViewTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create(username='test_username')
         cls.group = Group.objects.create(
-            title='Тестовая группа',
+            title='test title',
             slug='1',
-            description='Тестовое описание',
+            description='test description',
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text='Тестовый пост',
+            text='test post',
             group=cls.group,
         )
 
     def setUp(self):
         self.authorized_client = Client()
-        self.authorized_client.force_login(PostsURLTests.user)
+        self.authorized_client.force_login(PostsViewTests.user)
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -36,22 +36,21 @@ class PostsURLTests(TestCase):
             reverse('posts:index'): 'posts/index.html',
             reverse('posts:post_create'): 'posts/create_post.html',
             reverse('posts:post_edit',
-                    kwargs={'post_id': f'{PostsURLTests.post.id}'}):
+                    kwargs={'post_id': f'{PostsViewTests.post.id}'}):
             'posts/create_post.html',
             reverse('posts:profile',
-                    kwargs={'username': f'{PostsURLTests.user.username}'}):
+                    kwargs={'username': f'{PostsViewTests.user.username}'}):
             'posts/profile.html',
             reverse('posts:group_list',
-                    kwargs={'slug': f'{PostsURLTests.group.slug}'}):
+                    kwargs={'slug': f'{PostsViewTests.group.slug}'}):
             'posts/group_list.html',
             reverse('posts:post_detail',
-                    kwargs={'post_id': f'{PostsURLTests.post.id}'}):
+                    kwargs={'post_id': f'{PostsViewTests.post.id}'}):
             'posts/post_detail.html',
         }
         for reverse_name, template in reverse_names_templates.items():
             with self.subTest(reverse_name=reverse_name):
-                response = self.authorized_client.\
-                    get(reverse_name)
+                response = self.authorized_client.get(reverse_name)
                 self.assertTemplateUsed(response, template)
 
 
@@ -61,13 +60,13 @@ class PostsPagesTest(TestCase):
         super().setUpClass()
         cls.user = User.objects.create(username='test_username')
         cls.group = Group.objects.create(
-            title='Тестовая группа',
+            title='test title',
             slug='1',
-            description='Тестовое описание',
+            description='test description',
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text='Тестовый пост',
+            text='test post',
             group=cls.group,
         )
 
@@ -79,9 +78,9 @@ class PostsPagesTest(TestCase):
         """Шаблон index сформирован с правильным контекстом."""
         response = self.authorized_client.get(reverse('posts:index'))
         first_obj = response.context['page_obj'][0]
-        self.assertEqual(first_obj.text, 'Тестовый пост')
+        self.assertEqual(first_obj.text, 'test post')
         self.assertEqual(first_obj.author.username, 'test_username')
-        self.assertEqual(first_obj.group.title, 'Тестовая группа')
+        self.assertEqual(first_obj.group.title, 'test title')
 
     def test_task_list_page_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
@@ -90,10 +89,10 @@ class PostsPagesTest(TestCase):
             kwargs={'slug': f'{PostsPagesTest.group.slug}'}
         ))
         first_obj = response.context['page_obj'][0]
-        self.assertEqual(first_obj.text, 'Тестовый пост')
+        self.assertEqual(first_obj.text, 'test post')
         self.assertEqual(first_obj.author.username, 'test_username')
-        self.assertEqual(first_obj.group.title, 'Тестовая группа')
-        self.assertEqual(response.context['group'].title, 'Тестовая группа')
+        self.assertEqual(first_obj.group.title, 'test title')
+        self.assertEqual(response.context['group'].title, 'test title')
 
     def test_profile_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
@@ -102,9 +101,9 @@ class PostsPagesTest(TestCase):
             kwargs={'username': f'{PostsPagesTest.user.username}'}
         ))
         first_obj = response.context['page_obj'][0]
-        self.assertEqual(first_obj.text, 'Тестовый пост')
+        self.assertEqual(first_obj.text, 'test post')
         self.assertEqual(first_obj.author.username, 'test_username')
-        self.assertEqual(first_obj.group.title, 'Тестовая группа')
+        self.assertEqual(first_obj.group.title, 'test title')
         self.assertEqual(response.context['author'].username,
                          'test_username')
 
@@ -115,11 +114,9 @@ class PostsPagesTest(TestCase):
             kwargs={'post_id': f'{PostsPagesTest.post.id}'}
         ))
         obj = response.context['post']
-        self.assertEqual(obj.text, 'Тестовый пост')
+        self.assertEqual(obj.text, 'test post')
         self.assertEqual(obj.author.username, 'test_username')
-        self.assertEqual(obj.group.title, 'Тестовая группа')
-#        self.assertEqual(response.context['post.author.posts.count'], 1)
-#       строчка не проходит тест из-за ошибки ключа - хотя в шаблоне работает
+        self.assertEqual(obj.group.title, 'test title')
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
@@ -155,8 +152,10 @@ class PaginatorViewsTest(TestCase):
         cls.user = User.objects.create(username='test_username')
         cls.posts = [Post.objects.create(
             author=cls.user,
-            text='Тестовый пост'
-        ) for i in range(13)]
+            text='test post'
+        ) for i in range(constants.POSTS_PER_PAGE
+                         + constants.POSTS_PER_SECOND_PAGE)
+        ]
 
     def setUp(self):
         self.authorized_client = Client()

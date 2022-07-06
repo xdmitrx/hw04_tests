@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from ..models import Group, Post
+from .. import constants
 
 User = get_user_model()
 
@@ -12,21 +13,21 @@ class PostModelTest(TestCase):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
-            title='Тестовая группа',
-            slug='Тестовый слаг',
-            description='Тестовое описание',
+            title='test title',
+            slug=' test slug',
+            description=' test description',
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text='Тестовый пост',
+            text='test post'[:constants.SYMBOLS_IN_SELF_TEXT]
         )
 
     def test_models_have_correct_object_names(self):
         """Проверяем, что у моделей корректно работает __str__."""
         str_names = {
-            self.post: 'Тестовый пост',
-            self.group: 'Тестовая группа',
+            self.post: 'test post',
+            self.group: 'test title',
         }
         for model_type, expected_str in str_names.items():
             with self.subTest():
-                self.assertEqual(model_type.__str__(), expected_str)
+                self.assertEqual(str(model_type), expected_str)
