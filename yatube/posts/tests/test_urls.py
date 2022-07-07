@@ -53,7 +53,7 @@ class TaskURLTests(TestCase):
         }
         for address, template in templates_url_names.items():
             with self.subTest(address=address):
-                response = self.authorized_client.get(address)
+                response = self.authorized_client2.get(address)
                 self.assertTemplateUsed(response, template)
 
     def test_index_page_not_login_user(self):
@@ -86,11 +86,29 @@ class TaskURLTests(TestCase):
         response = self.authorized_client.get(create_post_page)
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
-    def test_edit_post_authorized_client(self):
+    def test_edit_post_author(self):
         """Редактирование поста автором."""
         edit_post_page = f'/posts/{TaskURLTests.post.id}/edit/'
         response = self.authorized_client2.get(edit_post_page)
         self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_edit_post_not_author(self):
+        """Редактирование поста не автором."""
+        edit_post_page = f'/posts/{TaskURLTests.post.id}/edit/'
+        response = self.authorized_client.get(edit_post_page)
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+
+    def test_create_post_guest_redirect(self):
+        """Редирект гостя при попытке создать пост."""
+        create_post_page = '/create/'
+        response = self.guest.get(create_post_page)
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
+
+    def test_edit_post_guest_redirect(self):
+        """Редирект гостя при попытке редактировать пост."""
+        edit_post_page = f'/posts/{TaskURLTests.post.id}/edit/'
+        response = self.guest.get(edit_post_page)
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_non_exist_page(self):
         """Тест на ошибку 404"""

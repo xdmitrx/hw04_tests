@@ -6,6 +6,7 @@ from django import forms
 from ..import constants
 
 from ..models import Group, Post
+from .utils import post_body_test, view_bundle
 
 User = get_user_model()
 
@@ -31,7 +32,7 @@ class PostsViewTests(TestCase):
         self.authorized_client.force_login(PostsViewTests.user)
 
     def test_pages_uses_correct_template(self):
-        """URL-адрес использует соответствующий шаблон."""
+        """Проверка шаблона при вызове views через пространство имен."""
         reverse_names_templates = {
             reverse('posts:index'): 'posts/index.html',
             reverse('posts:post_create'): 'posts/create_post.html',
@@ -77,22 +78,18 @@ class PostsPagesTest(TestCase):
     def test_home_page_show_correct_context(self):
         """Шаблон index сформирован с правильным контекстом."""
         response = self.authorized_client.get(reverse('posts:index'))
-        first_obj = response.context['page_obj'][0]
-        self.assertEqual(first_obj.text, 'test post')
-        self.assertEqual(first_obj.author.username, 'test_username')
-        self.assertEqual(first_obj.group.title, 'test title')
+        bundle = view_bundle(self, response.context['page_obj'][0])
+        post_body_test(self, bundle)
 
-    def test_task_list_page_show_correct_context(self):
+    def test_group_list_page_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
         response = self.authorized_client.get(reverse(
             'posts:group_list',
             kwargs={'slug': f'{PostsPagesTest.group.slug}'}
         ))
-        first_obj = response.context['page_obj'][0]
-        self.assertEqual(first_obj.text, 'test post')
-        self.assertEqual(first_obj.author.username, 'test_username')
-        self.assertEqual(first_obj.group.title, 'test title')
-        self.assertEqual(response.context['group'].title, 'test title')
+        bundle = view_bundle(self, response.context['page_obj'][0],
+                             response.context['group'].title, self.group.title)
+        post_body_test(self, bundle)
 
     def test_profile_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
@@ -100,12 +97,10 @@ class PostsPagesTest(TestCase):
             'posts:profile',
             kwargs={'username': f'{PostsPagesTest.user.username}'}
         ))
-        first_obj = response.context['page_obj'][0]
-        self.assertEqual(first_obj.text, 'test post')
-        self.assertEqual(first_obj.author.username, 'test_username')
-        self.assertEqual(first_obj.group.title, 'test title')
-        self.assertEqual(response.context['author'].username,
-                         'test_username')
+        bundle = view_bundle(self, response.context['page_obj'][0],
+                             response.context['author'].username,
+                             self.user.username)
+        post_body_test(self, bundle)
 
     def test_post_detail_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -113,10 +108,8 @@ class PostsPagesTest(TestCase):
             'posts:post_detail',
             kwargs={'post_id': f'{PostsPagesTest.post.id}'}
         ))
-        obj = response.context['post']
-        self.assertEqual(obj.text, 'test post')
-        self.assertEqual(obj.author.username, 'test_username')
-        self.assertEqual(obj.group.title, 'test title')
+        bundle = view_bundle(self, response.context['post'])
+        post_body_test(self, bundle)
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
@@ -153,9 +146,9 @@ class PaginatorViewsTest(TestCase):
         cls.posts = [Post.objects.create(
             author=cls.user,
             text='test post'
-        ) for i in range(constants.POSTS_PER_PAGE
-                         + constants.POSTS_PER_SECOND_PAGE)
-        ]
+        )
+            for i in range(constants.POSTS_PER_PAGE
+                           + constants.POSTS_PER_SECOND_PAGE)]
 
     def setUp(self):
         self.authorized_client = Client()
