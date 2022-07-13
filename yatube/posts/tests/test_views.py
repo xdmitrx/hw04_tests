@@ -143,12 +143,17 @@ class PaginatorViewsTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create(username='test_username')
-        cls.posts = [Post.objects.create(
+        cls.posts = Post.objects.create(
             author=cls.user,
             text='test post'
         )
-            for i in range(constants.POSTS_PER_PAGE
-                           + constants.POSTS_PER_SECOND_PAGE)]
+        cls.group = Group.objects.create(
+            title='test title',
+            slug='1',
+            description='test description',
+        )
+        for i in range(constants.POSTS_PER_PAGE
+                       + constants.POSTS_PER_SECOND_PAGE)
 
     def setUp(self):
         self.authorized_client = Client()
@@ -167,4 +172,12 @@ class PaginatorViewsTest(TestCase):
             'posts:index') + '?page=2')
         self.assertEqual(len(response.context['page_obj']),
                             (constants.POSTS_PER_SECOND_PAGE)
+                         )
+
+    def test_group_page_contains_ten_records(self):
+        """Проверит количество постов на странице группы."""
+        group_page = f'/group/{self.group.slug}/'
+        response = self.client.get(group_page)
+        self.assertEqual(len(response.context['page_obj']),
+                            (constants.POSTS_PER_PAGE)
                          )

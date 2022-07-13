@@ -9,15 +9,6 @@ from ..models import Group, Post
 User = get_user_model()
 
 
-class StaticURLTests(TestCase):
-    def setUp(self):
-        self.client = Client()
-
-    def test_homepage(self):
-        response = self.client.get('/')
-        self.assertEqual(response.status_code, HTTPStatus.OK)
-
-
 class TaskURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -35,21 +26,21 @@ class TaskURLTests(TestCase):
         )
 
     def setUp(self):
-        self.guest = Client()
+        self.client = Client()
         self.authorized_client = Client()
-        self.authorized_client.force_login(TaskURLTests.user)
+        self.authorized_client.force_login(self.user)
         self.authorized_client2 = Client()
-        self.authorized_client2.force_login(TaskURLTests.user2)
+        self.authorized_client2.force_login(self.user2)
 
     def test_urls_uses_correct_template(self):
         """Проверит, что страницы используют правильные шаблоны."""
         templates_url_names = {
             '/': 'posts/index.html',
-            f'/group/{TaskURLTests.group.slug}/': 'posts/group_list.html',
-            f'/profile/{TaskURLTests.user.username}/': 'posts/profile.html',
-            f'/posts/{TaskURLTests.post.id}/': 'posts/post_detail.html',
+            f'/group/{self.group.slug}/': 'posts/group_list.html',
+            f'/profile/{self.user.username}/': 'posts/profile.html',
+            f'/posts/{self.post.id}/': 'posts/post_detail.html',
             '/create/': 'posts/create_post.html',
-            f'/posts/{TaskURLTests.post.id}/edit/': 'posts/create_post.html',
+            f'/posts/{self.post.id}/edit/': 'posts/create_post.html',
         }
         for address, template in templates_url_names.items():
             with self.subTest(address=address):
@@ -59,25 +50,25 @@ class TaskURLTests(TestCase):
     def test_index_page_not_login_user(self):
         """Главная страница доступна гостю."""
         index_page = '/'
-        response = self.guest.get(index_page)
+        response = self.client.get(index_page)
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_group_page_not_login_user(self):
         """Просмотр групп доступен гостю."""
-        group_page = f'/group/{TaskURLTests.group.slug}/'
-        response = self.guest.get(group_page, args=[self.group.slug])
+        group_page = f'/group/{self.group.slug}/'
+        response = self.client.get(group_page, args=[self.group.slug])
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_profile_page_not_login_user(self):
         """Просмотр чужого профиля доступен гостю."""
-        profile_page = f'/profile/{TaskURLTests.user.username}/'
-        response = self.guest.get(profile_page, args=[self.user.username])
+        profile_page = f'/profile/{self.user.username}/'
+        response = self.client.get(profile_page, args=[self.user.username])
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_post_page_not_login_user(self):
         """Просмотр чужого поста доступен гостю."""
-        post_page = f'/posts/{TaskURLTests.post.id}/'
-        response = self.guest.get(post_page)
+        post_page = f'/posts/{self.post.id}/'
+        response = self.client.get(post_page)
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_create_post_authorized_client(self):
@@ -88,26 +79,26 @@ class TaskURLTests(TestCase):
 
     def test_edit_post_author(self):
         """Редактирование поста автором."""
-        edit_post_page = f'/posts/{TaskURLTests.post.id}/edit/'
+        edit_post_page = f'/posts/{self.post.id}/edit/'
         response = self.authorized_client2.get(edit_post_page)
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_edit_post_not_author(self):
         """Редактирование поста не автором."""
-        edit_post_page = f'/posts/{TaskURLTests.post.id}/edit/'
+        edit_post_page = f'/posts/{self.post.id}/edit/'
         response = self.authorized_client.get(edit_post_page)
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
     def test_create_post_guest_redirect(self):
         """Редирект гостя при попытке создать пост."""
         create_post_page = '/create/'
-        response = self.guest.get(create_post_page)
+        response = self.client.get(create_post_page)
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_edit_post_guest_redirect(self):
         """Редирект гостя при попытке редактировать пост."""
-        edit_post_page = f'/posts/{TaskURLTests.post.id}/edit/'
-        response = self.guest.get(edit_post_page)
+        edit_post_page = f'/posts/{self.post.id}/edit/'
+        response = self.client.get(edit_post_page)
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_non_exist_page(self):
