@@ -65,6 +65,11 @@ class PostsPagesTest(TestCase):
             slug='1',
             description='test description',
         )
+        cls.group_2 = Group.objects.create(
+            title='test title2',
+            description='test description2',
+            slug='2'
+        )
         cls.post = Post.objects.create(
             author=cls.user,
             text='test post',
@@ -137,23 +142,30 @@ class PostsPagesTest(TestCase):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
 
+    def test_post_appeared_on_the_groups_page(self):
+        """Пост не улетает в другую группу."""
+        group_2 = f'/group/{self.group_2.slug}/'
+        response = self.authorized_client.get(group_2)
+        self.assertNotIn(self.post, response.context['group'])
+
 
 class PaginatorViewsTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create(username='test_username')
-        cls.posts = Post.objects.create(
-            author=cls.user,
-            text='test post'
-        )
         cls.group = Group.objects.create(
             title='test title',
             slug='1',
             description='test description',
         )
-        for i in range(constants.POSTS_PER_PAGE
-                       + constants.POSTS_PER_SECOND_PAGE)
+        cls.posts = [Post.objects.create(
+            author=cls.user,
+            text='test post',
+            group=cls.group,
+        )
+            for i in range(constants.POSTS_PER_PAGE
+                           + constants.POSTS_PER_SECOND_PAGE)]
 
     def setUp(self):
         self.authorized_client = Client()
@@ -177,7 +189,15 @@ class PaginatorViewsTest(TestCase):
     def test_group_page_contains_ten_records(self):
         """Проверит количество постов на странице группы."""
         group_page = f'/group/{self.group.slug}/'
-        response = self.client.get(group_page)
+        response = self.authorized_client.get(group_page)
         self.assertEqual(len(response.context['page_obj']),
                             (constants.POSTS_PER_PAGE)
+                         )
+
+    def test_profile_page_contains_ten_records(self):
+        """Проверит количество постов на странице профиля."""
+        profile_page = f'/profile/{self.user.username}/'
+        response = self.authorized_client.get(profile_page)
+        self.assertEqual(len(response.context['page_obj']),
+                            (constants.POSTS_PER_PAGE),
                          )
