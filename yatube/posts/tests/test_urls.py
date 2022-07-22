@@ -87,7 +87,7 @@ class TaskURLTests(TestCase):
         """Редактирование поста не автором."""
         edit_post_page = f'/posts/{self.post.id}/edit/'
         response = self.authorized_client.get(edit_post_page)
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_create_post_guest_redirect(self):
         """Редирект гостя при попытке создать пост."""
@@ -106,3 +106,30 @@ class TaskURLTests(TestCase):
         unexisting_page = '/unexisting_page/'
         response = self.authorized_client.get(unexisting_page)
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+
+    def test_create_post_url_redirect_anonymous_on_admin_login(self):
+        """Страница для создания поста перенаправит анонимного
+        пользователя на страницу логина.
+        """
+        create_post_page = '/create/'
+        response = self.client.get(create_post_page)
+        self.assertRedirects(
+            response, ('/auth/login/?next=/create/'))
+
+    def test_edit_post_url_redirect_anonymous_on_admin_login(self):
+        """Страница для редактирования поста перенаправит анонимного
+        пользователя на страницу логина.
+        """
+        edit_post_page = f'/posts/{self.post.id}/edit/'
+        response = self.client.get(edit_post_page)
+        self.assertRedirects(
+            response, ('/auth/login/?next=/posts/1/edit/'))
+
+    def test_edit_post_url_redirect_not_author_on_unexisting_page(self):
+        """Страница для редактирования поста перенаправит
+        не автора на страницу поста.
+        """
+        edit_post_page = f'/posts/{self.post.id}/edit/'
+        response = self.authorized_client.get(edit_post_page)
+        self.assertRedirects(
+            response, ('/posts/1/'))

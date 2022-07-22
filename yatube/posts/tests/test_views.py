@@ -6,7 +6,6 @@ from django import forms
 from ..import constants
 
 from ..models import Group, Post
-from .utils import post_body_test, view_bundle
 
 User = get_user_model()
 
@@ -67,8 +66,8 @@ class PostsPagesTest(TestCase):
         )
         cls.group_2 = Group.objects.create(
             title='test title2',
+            slug='2',
             description='test description2',
-            slug='2'
         )
         cls.post = Post.objects.create(
             author=cls.user,
@@ -80,11 +79,29 @@ class PostsPagesTest(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(PostsPagesTest.user)
 
+    def post_body_test(self, bundle):
+        for first, second in bundle:
+            with self.subTest():
+                self.assertEqual(first, second)
+
+    def view_bundle(self, first_obj,
+                    additional_context=None,
+                    additional_value=None):
+
+        """Принимает данные setUp, первый объект контекста формы,
+        и необязательную пару для проверки контекст-значение, и
+        компанует кортежи для проверки."""
+
+        return ((first_obj.text, self.post),
+                (first_obj.author, self.user),
+                (first_obj.group, self.group),
+                (additional_context, additional_value))
+
     def test_home_page_show_correct_context(self):
         """Шаблон index сформирован с правильным контекстом."""
         response = self.authorized_client.get(reverse('posts:index'))
-        bundle = view_bundle(self, response.context['page_obj'][0])
-        post_body_test(self, bundle)
+        bundle = self.view_bundle(self, response.context['page_obj'][0])
+        self.post_body_test(self, bundle)
 
     def test_group_list_page_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
@@ -92,9 +109,10 @@ class PostsPagesTest(TestCase):
             'posts:group_list',
             kwargs={'slug': f'{PostsPagesTest.group.slug}'}
         ))
-        bundle = view_bundle(self, response.context['page_obj'][0],
-                             response.context['group'].title, self.group.title)
-        post_body_test(self, bundle)
+        bundle = self.view_bundle(self, response.context['page_obj'][0],
+                                  response.context['group'],
+                                  self.group)
+        self.post_body_test(self, bundle)
 
     def test_profile_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
@@ -102,10 +120,10 @@ class PostsPagesTest(TestCase):
             'posts:profile',
             kwargs={'username': f'{PostsPagesTest.user.username}'}
         ))
-        bundle = view_bundle(self, response.context['page_obj'][0],
-                             response.context['author'].username,
-                             self.user.username)
-        post_body_test(self, bundle)
+        bundle = self.view_bundle(self, response.context['page_obj'][0],
+                                  response.context['author'],
+                                  self.user)
+        self.post_body_test(self, bundle)
 
     def test_post_detail_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -113,8 +131,8 @@ class PostsPagesTest(TestCase):
             'posts:post_detail',
             kwargs={'post_id': f'{PostsPagesTest.post.id}'}
         ))
-        bundle = view_bundle(self, response.context['post'])
-        post_body_test(self, bundle)
+        bundle = self.view_bundle(self, response.context['post'])
+        self.post_body_test(self, bundle)
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
@@ -142,11 +160,17 @@ class PostsPagesTest(TestCase):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
 
-    def test_post_appeared_on_the_groups_page(self):
+    def test_post_appeared_on_the_wrong_groups_page(self):
         """Пост не улетает в другую группу."""
         group_2 = f'/group/{self.group_2.slug}/'
         response = self.authorized_client.get(group_2)
-        self.assertNotIn(self.post, response.context['group'])
+        self.assertNotIn(self.post, response.context['page_obj'])
+
+    def test_post_appeared_on_the_groups_page(self):
+        """Пост улетает в нужную группу."""
+        group = f'/group/{self.group.slug}/'
+        response = self.authorized_client.get(group)
+        self.assertIn(self.post, response.context['page_obj'])
 
 
 class PaginatorViewsTest(TestCase):

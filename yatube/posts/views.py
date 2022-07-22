@@ -75,8 +75,12 @@ def post_create(request):
 @login_required
 def post_edit(request, post_id):
     """Возможность редактировать пост для авторизованного пользователя."""
-    post_object = get_object_or_404(Post, id=post_id, author=request.user)
+    post_object = get_object_or_404(Post, id=post_id)
     form = PostForm(request.POST or None, instance=post_object)
+    if post_object.author != request.user:
+
+        return redirect('posts:post_detail', post_id)
+
     if request.method == 'POST' and form.is_valid():
         form.save()
 
@@ -84,9 +88,6 @@ def post_edit(request, post_id):
 
             return redirect('posts:post_edit', post_id)
 
-        if post_object.author != request.user:
-
-            return redirect('posts/post_detail', post_id)
         form = PostForm(instance=post_object)
 
     context = {

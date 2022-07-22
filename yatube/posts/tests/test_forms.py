@@ -21,12 +21,12 @@ class PostFormTest(TestCase):
         cls.form = PostForm()
         cls.group_1 = Group.objects.create(
             title='test title 1',
-            slug='1',
+            slug='23',
             description='test description 1',
         )
         cls.group_2 = Group.objects.create(
             title='test title 2',
-            slug='2',
+            slug='25',
             description='Теst description 2',
         )
 
@@ -46,10 +46,17 @@ class PostFormTest(TestCase):
             data=form_data,
             follow=True
         )
+        last_post = Post.objects.order_by('text', 'group').last()
         self.assertRedirects(response, reverse(
             'posts:profile',
             kwargs={'username': f'{PostFormTest.user.username}'}))
         self.assertEqual(Post.objects.count(), posts_count + 1)
+        last_post_data = ((last_post.text, form_data.get('text')),
+                          (last_post.group.title, self.group_1.title),
+                          (last_post.author, self.user))
+        for value, expected in last_post_data:
+            with self.subTest(value=value):
+                self.assertEqual(value, expected)
 
     def test_authorized_client_post_edit(self):
         """Изменение поста авторизованным пользователем."""
@@ -64,7 +71,16 @@ class PostFormTest(TestCase):
             data=form_data,
             follow=True
         )
+        last_edit_post = Post.objects.order_by('text', 'group').last()
         self.assertRedirects(response, reverse(
             'posts:post_edit',
             kwargs={'post_id': f'{PostFormTest.post.id}'}))
         self.assertEqual(Post.objects.count(), posts_count)
+        last_edit_post_data = ((last_edit_post.text, form_data.get('text')),
+                               (last_edit_post.group.title,
+                                self.group_2.title),
+                               (last_edit_post.author, self.user)
+                               )
+        for value, expected in last_edit_post_data:
+            with self.subTest(value=value):
+                self.assertEqual(value, expected)

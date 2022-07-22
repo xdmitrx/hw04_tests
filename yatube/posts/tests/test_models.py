@@ -19,14 +19,14 @@ class PostModelTest(TestCase):
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text='test post'[:constants.SYMBOLS_IN_SELF_TEXT]
+            text='test post'
         )
 
     def test_models_have_correct_object_names(self):
         """Проверяем, что у моделей корректно работает __str__."""
         str_names = {
-            self.post: 'test post',
-            self.group: 'test title',
+            self.post: 'test post'[:constants.SYMBOLS_IN_SELF_TEXT],
+            self.group: 'test title'[:constants.SYMBOLS_IN_SELF_TEXT],
         }
         for model_type, expected_str in str_names.items():
             with self.subTest():
