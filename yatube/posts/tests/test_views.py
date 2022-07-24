@@ -79,60 +79,40 @@ class PostsPagesTest(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(PostsPagesTest.user)
 
-    def post_body_test(self, bundle):
-        for first, second in bundle:
-            with self.subTest():
-                self.assertEqual(first, second)
-
-    def view_bundle(self, first_obj,
-                    additional_context=None,
-                    additional_value=None):
-
-        """Принимает данные setUp, первый объект контекста формы,
-        и необязательную пару для проверки контекст-значение, и
-        компанует кортежи для проверки."""
-
-        return ((first_obj.text, self.post),
-                (first_obj.author, self.user),
-                (first_obj.group, self.group),
-                (additional_context, additional_value))
-
-    def test_home_page_show_correct_context(self):
+    def test_index_show_correct_context(self):
         """Шаблон index сформирован с правильным контекстом."""
         response = self.authorized_client.get(reverse('posts:index'))
-        bundle = self.view_bundle(self, response.context['page_obj'][0])
-        self.post_body_test(self, bundle)
+        first_object = response.context['page_obj'][0]
+        self.assertEqual(first_object.text, self.post.text)
 
-    def test_group_list_page_show_correct_context(self):
+    def test_group_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse(
-            'posts:group_list',
-            kwargs={'slug': f'{PostsPagesTest.group.slug}'}
-        ))
-        bundle = self.view_bundle(self, response.context['page_obj'][0],
-                                  response.context['group'],
-                                  self.group)
-        self.post_body_test(self, bundle)
+        response = self.authorized_client.get(reverse('posts:group_list',
+                                              kwargs={'slug':
+                                                      self.group.slug}))
+        first_object = response.context['page_obj'][0]
+        self.assertEqual(first_object.text, self.post.text)
+        self.assertEqual(first_object.group, self.post.group)
 
     def test_profile_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse(
-            'posts:profile',
-            kwargs={'username': f'{PostsPagesTest.user.username}'}
-        ))
-        bundle = self.view_bundle(self, response.context['page_obj'][0],
-                                  response.context['author'],
-                                  self.user)
-        self.post_body_test(self, bundle)
+        response = self.authorized_client.get(reverse('posts:profile',
+                                              kwargs={'username':
+                                                      self.post.author.username
+                                                      }))
+        first_object = response.context['page_obj'][0]
+        self.assertEqual(first_object.text, self.post.text)
+        self.assertEqual(first_object.author, self.post.author)
 
-    def test_post_detail_show_correct_context(self):
+    def test_detail_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse(
-            'posts:post_detail',
-            kwargs={'post_id': f'{PostsPagesTest.post.id}'}
-        ))
-        bundle = self.view_bundle(self, response.context['post'])
-        self.post_body_test(self, bundle)
+        response = self.authorized_client.get(reverse('posts:post_detail',
+                                              kwargs={'post_id':
+                                                      self.post.id}))
+        first_object = response.context['post']
+        self.assertEqual(first_object.text, self.post.text)
+        self.assertEqual(first_object.author.posts.count(),
+                         self.post.author.posts.count())
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
@@ -157,7 +137,8 @@ class PostsPagesTest(TestCase):
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
-                form_field = response.context.get('form').fields.get(value)
+                form_field = response.context.get('form',
+                                                  'post').fields.get(value)
                 self.assertIsInstance(form_field, expected)
 
     def test_post_appeared_on_the_wrong_groups_page(self):
