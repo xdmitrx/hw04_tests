@@ -77,13 +77,16 @@ class PostsPagesTest(TestCase):
 
     def setUp(self):
         self.authorized_client = Client()
-        self.authorized_client.force_login(PostsPagesTest.user)
+        self.authorized_client.force_login(self.user)
 
     def test_index_show_correct_context(self):
         """Шаблон index сформирован с правильным контекстом."""
         response = self.authorized_client.get(reverse('posts:index'))
         first_object = response.context['page_obj'][0]
         self.assertEqual(first_object.text, self.post.text)
+        self.assertEqual(first_object.author, self.post.author)
+        self.assertEqual(first_object.group, self.post.group)
+        self.assertEqual(first_object.id, self.post.id)
 
     def test_group_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
@@ -92,7 +95,10 @@ class PostsPagesTest(TestCase):
                                                       self.group.slug}))
         first_object = response.context['page_obj'][0]
         self.assertEqual(first_object.text, self.post.text)
-        self.assertEqual(first_object.group, self.post.group)
+        self.assertEqual(response.context['group'].title, self.group.title)
+        self.assertEqual(
+            response.context['group'].description, self.group.description)
+        self.assertEqual(response.context['group'].slug, self.group.slug)
 
     def test_profile_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
@@ -102,7 +108,7 @@ class PostsPagesTest(TestCase):
                                                       }))
         first_object = response.context['page_obj'][0]
         self.assertEqual(first_object.text, self.post.text)
-        self.assertEqual(first_object.author, self.post.author)
+        self.assertEqual(response.context['author'], self.user)
 
     def test_detail_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -111,8 +117,6 @@ class PostsPagesTest(TestCase):
                                                       self.post.id}))
         first_object = response.context['post']
         self.assertEqual(first_object.text, self.post.text)
-        self.assertEqual(first_object.author.posts.count(),
-                         self.post.author.posts.count())
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
@@ -130,15 +134,15 @@ class PostsPagesTest(TestCase):
         """Шаблон post_edit сформирован с правильным контекстом."""
         response = self.authorized_client.get(reverse(
             'posts:post_edit',
-            kwargs={'post_id': f'{PostsPagesTest.post.id}'}))
+            kwargs={'post_id': f'{self.post.id}'}))
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.ModelChoiceField,
         }
+        self.assertEqual(response.context['post'], self.post)
         for value, expected in form_fields.items():
             with self.subTest(value=value):
-                form_field = response.context.get('form',
-                                                  'post').fields.get(value)
+                form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
 
     def test_post_appeared_on_the_wrong_groups_page(self):
@@ -152,6 +156,29 @@ class PostsPagesTest(TestCase):
         group = f'/group/{self.group.slug}/'
         response = self.authorized_client.get(group)
         self.assertIn(self.post, response.context['page_obj'])
+
+    def test_first_post_appeared_on_index_page(self):
+        """Пост при создании попадает на 1ю позицию на главной странице."""
+        response = self.authorized_client.get(reverse('posts:index'))
+        first_post = Post.objects.first()
+        self.assertEqual(response.context['page_obj'][0],
+                         first_post)
+
+    def test_first_post_appeared_on_index_page(self):
+        """Пост при создании попадает на 1ю позицию на странице группы."""
+        group_page = f'/group/{self.group.slug}/'
+        response = self.authorized_client.get(group_page)
+        first_post = Post.objects.first()
+        self.assertEqual(response.context['page_obj'][0],
+                         first_post)
+
+    def test_first_post_appeared_on_index_page(self):
+        """Пост при создании попадает на 1ю позицию на странице профиля."""
+        profile_page = f'/profile/{self.user.username}/'
+        response = self.authorized_client.get(profile_page)
+        first_post = Post.objects.first()
+        self.assertEqual(response.context['page_obj'][0],
+                         first_post)
 
 
 class PaginatorViewsTest(TestCase):
@@ -199,10 +226,26 @@ class PaginatorViewsTest(TestCase):
                             (constants.POSTS_PER_PAGE)
                          )
 
+    def test_second_group_page_contains_three_records(self):
+        """Проверит количество постов на 2й странице группы."""
+        group_page = f'/group/{self.group.slug}/'
+        response = self.authorized_client.get((group_page) + '?page=2')
+        self.assertEqual(len(response.context['page_obj']),
+                            (constants.POSTS_PER_SECOND_PAGE)
+                         )
+
     def test_profile_page_contains_ten_records(self):
         """Проверит количество постов на странице профиля."""
         profile_page = f'/profile/{self.user.username}/'
         response = self.authorized_client.get(profile_page)
         self.assertEqual(len(response.context['page_obj']),
                             (constants.POSTS_PER_PAGE),
+                         )
+
+    def test_second_profile_page_contains_three_records(self):
+        """Проверит количество постов на 2й странице профиля."""
+        profile_page = f'/profile/{self.user.username}/'
+        response = self.authorized_client.get((profile_page) + '?page=2')
+        self.assertEqual(len(response.context['page_obj']),
+                            (constants.POSTS_PER_SECOND_PAGE),
                          )

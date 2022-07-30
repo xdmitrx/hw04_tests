@@ -26,7 +26,6 @@ class TaskURLTests(TestCase):
         )
 
     def setUp(self):
-        self.client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
         self.authorized_client2 = Client()
@@ -123,13 +122,13 @@ class TaskURLTests(TestCase):
         edit_post_page = f'/posts/{self.post.id}/edit/'
         response = self.client.get(edit_post_page)
         self.assertRedirects(
-            response, ('/auth/login/?next=/posts/1/edit/'))
+            response, (f'/auth/login/?next=/posts/{self.post.id}/edit/'))
 
-    def test_edit_post_url_redirect_not_author_on_unexisting_page(self):
+    def test_edit_post_url_redirect_not_author_on_post_detail_page(self):
         """Страница для редактирования поста перенаправит
         не автора на страницу поста.
         """
         edit_post_page = f'/posts/{self.post.id}/edit/'
         response = self.authorized_client.get(edit_post_page)
         self.assertRedirects(
-            response, ('/posts/1/'))
+            response, (f'/posts/{self.post.id}/'))
