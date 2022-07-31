@@ -4,7 +4,6 @@ from django.urls import reverse
 from django import forms
 
 from ..import constants
-
 from ..models import Group, Post
 
 User = get_user_model()
@@ -95,6 +94,9 @@ class PostsPagesTest(TestCase):
                                                       self.group.slug}))
         first_object = response.context['page_obj'][0]
         self.assertEqual(first_object.text, self.post.text)
+        self.assertEqual(first_object.author, self.post.author)
+        self.assertEqual(first_object.group, self.post.group)
+        self.assertEqual(first_object.id, self.post.id)
         self.assertEqual(response.context['group'].title, self.group.title)
         self.assertEqual(
             response.context['group'].description, self.group.description)
@@ -110,13 +112,16 @@ class PostsPagesTest(TestCase):
         self.assertEqual(first_object.text, self.post.text)
         self.assertEqual(response.context['author'], self.user)
 
-    def test_detail_show_correct_context(self):
+    def test_post_detail_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
         response = self.authorized_client.get(reverse('posts:post_detail',
                                               kwargs={'post_id':
                                                       self.post.id}))
         first_object = response.context['post']
         self.assertEqual(first_object.text, self.post.text)
+        self.assertEqual(first_object.author, self.post.author)
+        self.assertEqual(first_object.group, self.post.group)
+        self.assertEqual(first_object.id, self.post.id)
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
@@ -157,14 +162,14 @@ class PostsPagesTest(TestCase):
         response = self.authorized_client.get(group)
         self.assertIn(self.post, response.context['page_obj'])
 
-    def test_first_post_appeared_on_index_page(self):
+    def test_first_post_appeared_on_the_index_page(self):
         """Пост при создании попадает на 1ю позицию на главной странице."""
         response = self.authorized_client.get(reverse('posts:index'))
         first_post = Post.objects.first()
         self.assertEqual(response.context['page_obj'][0],
                          first_post)
 
-    def test_first_post_appeared_on_index_page(self):
+    def test_first_post_appeared_on_the_group_page(self):
         """Пост при создании попадает на 1ю позицию на странице группы."""
         group_page = f'/group/{self.group.slug}/'
         response = self.authorized_client.get(group_page)
@@ -172,7 +177,7 @@ class PostsPagesTest(TestCase):
         self.assertEqual(response.context['page_obj'][0],
                          first_post)
 
-    def test_first_post_appeared_on_index_page(self):
+    def test_first_post_appeared_on_the_profile_page(self):
         """Пост при создании попадает на 1ю позицию на странице профиля."""
         profile_page = f'/profile/{self.user.username}/'
         response = self.authorized_client.get(profile_page)
