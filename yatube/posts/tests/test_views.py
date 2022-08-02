@@ -1,10 +1,18 @@
+import shutil
+import tempfile
+
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.conf import settings
 from django import forms
 
 from ..import constants
 from ..models import Group, Post
+
+from ..utils import uploaded_img
+
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 User = get_user_model()
 
@@ -23,7 +31,13 @@ class PostsViewTests(TestCase):
             author=cls.user,
             text='test post',
             group=cls.group,
+            image=uploaded_img
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
         self.authorized_client = Client()
@@ -72,6 +86,7 @@ class PostsPagesTest(TestCase):
             author=cls.user,
             text='test post',
             group=cls.group,
+            image=uploaded_img,
         )
 
     def setUp(self):
@@ -86,6 +101,7 @@ class PostsPagesTest(TestCase):
         self.assertEqual(first_object.author, self.post.author)
         self.assertEqual(first_object.group, self.post.group)
         self.assertEqual(first_object.id, self.post.id)
+        self.assertEqual(response.context['post'].image, self.post.image)
 
     def test_group_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
@@ -97,6 +113,7 @@ class PostsPagesTest(TestCase):
         self.assertEqual(first_object.author, self.post.author)
         self.assertEqual(first_object.group, self.post.group)
         self.assertEqual(first_object.id, self.post.id)
+        self.assertEqual(response.context['post'].image, self.post.image)
         self.assertEqual(response.context['group'].title, self.group.title)
         self.assertEqual(
             response.context['group'].description, self.group.description)
@@ -111,6 +128,7 @@ class PostsPagesTest(TestCase):
         first_object = response.context['page_obj'][0]
         self.assertEqual(first_object.text, self.post.text)
         self.assertEqual(response.context['author'], self.user)
+        self.assertEqual(response.context['post'].image, self.post.image)
 
     def test_post_detail_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -122,6 +140,7 @@ class PostsPagesTest(TestCase):
         self.assertEqual(first_object.author, self.post.author)
         self.assertEqual(first_object.group, self.post.group)
         self.assertEqual(first_object.id, self.post.id)
+        self.assertEqual(response.context['post'].image, self.post.image)
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
@@ -129,6 +148,7 @@ class PostsPagesTest(TestCase):
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.ModelChoiceField,
+            'image': forms.ImageField
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
@@ -143,6 +163,7 @@ class PostsPagesTest(TestCase):
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.ModelChoiceField,
+            'image': forms.ImageField
         }
         self.assertEqual(response.context['post'], self.post)
         for value, expected in form_fields.items():

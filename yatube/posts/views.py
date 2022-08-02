@@ -57,7 +57,8 @@ def post_detail(request, post_id):
 @login_required
 def post_create(request):
     """Возможность создать новый пост для авторизованного пользователя."""
-    form = PostForm(request.POST or None)
+    form = PostForm(request.POST or None,
+                    files=request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         post = form.save(commit=False)
         post.author = request.user
@@ -76,7 +77,9 @@ def post_create(request):
 def post_edit(request, post_id):
     """Возможность редактировать пост для авторизованного пользователя."""
     post_object = get_object_or_404(Post, id=post_id)
-    form = PostForm(request.POST or None, instance=post_object)
+    form = PostForm(request.POST or None,
+                    files=request.FILES or None,
+                    instance=post_object)
     if post_object.author != request.user:
 
         return redirect('posts:post_detail', post_id)

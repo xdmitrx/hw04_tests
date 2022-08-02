@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% load thumbnail %}
+
 {% block title %}
   <title>Профайл пользователя {{ author.get_full_name }}</title>
 {% endblock %}
@@ -10,6 +12,9 @@
       <h3>Всего постов: {{ author.posts.count }} </h3>       
       {% for post in page_obj %}
         {% include 'posts/post.html' %}
+          {% thumbnail post.image "960x339" crop="center" upscale=True as im %}
+              <img class="card-img my-2" src="{{ im.url }}">
+          {% endthumbnail %}
         {% if not forloop.last %}<hr>{% endif %}
       {% endfor %}
       {% include 'posts/includes/paginator.html' %} 
