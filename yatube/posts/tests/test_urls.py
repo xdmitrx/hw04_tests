@@ -40,6 +40,7 @@ class TaskURLTests(TestCase):
             f'/posts/{self.post.id}/': 'posts/post_detail.html',
             '/create/': 'posts/create_post.html',
             f'/posts/{self.post.id}/edit/': 'posts/create_post.html',
+            f'posts/{self.post.id}/comment/': 'posts/includes/comment.html',
         }
         for address, template in templates_url_names.items():
             with self.subTest(address=address):
@@ -130,5 +131,14 @@ class TaskURLTests(TestCase):
         """
         edit_post_page = f'/posts/{self.post.id}/edit/'
         response = self.authorized_client.get(edit_post_page)
+        self.assertRedirects(
+            response, (f'/posts/{self.post.id}/'))
+
+    def test_comment_post_url_redirect_author_on_post_detail_page(self):
+        """Страница для комментирования поста перенаправит
+        авторизованного пользователя на страницу поста.
+        """
+        comment_post_page = f'/posts/{self.post.id}/comment/'
+        response = self.authorized_client.get(comment_post_page)
         self.assertRedirects(
             response, (f'/posts/{self.post.id}/'))

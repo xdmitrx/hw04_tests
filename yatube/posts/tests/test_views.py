@@ -2,6 +2,7 @@ import shutil
 import tempfile
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.conf import settings
@@ -41,7 +42,7 @@ class PostsViewTests(TestCase):
 
     def setUp(self):
         self.authorized_client = Client()
-        self.authorized_client.force_login(PostsViewTests.user)
+        self.authorized_client.force_login(self.user)
 
     def test_pages_uses_correct_template(self):
         """Проверка шаблона при вызове views через пространство имен."""
@@ -49,16 +50,16 @@ class PostsViewTests(TestCase):
             reverse('posts:index'): 'posts/index.html',
             reverse('posts:post_create'): 'posts/create_post.html',
             reverse('posts:post_edit',
-                    kwargs={'post_id': f'{PostsViewTests.post.id}'}):
+                    kwargs={'post_id': f'{self.post.id}'}):
             'posts/create_post.html',
             reverse('posts:profile',
-                    kwargs={'username': f'{PostsViewTests.user.username}'}):
+                    kwargs={'username': f'{self.user.username}'}):
             'posts/profile.html',
             reverse('posts:group_list',
-                    kwargs={'slug': f'{PostsViewTests.group.slug}'}):
+                    kwargs={'slug': f'{self.group.slug}'}):
             'posts/group_list.html',
             reverse('posts:post_detail',
-                    kwargs={'post_id': f'{PostsViewTests.post.id}'}):
+                    kwargs={'post_id': f'{self.post.id}'}):
             'posts/post_detail.html',
         }
         for reverse_name, template in reverse_names_templates.items():
@@ -205,6 +206,25 @@ class PostsPagesTest(TestCase):
         first_post = Post.objects.first()
         self.assertEqual(response.context['page_obj'][0],
                          first_post)
+
+    def test_index_cache(self):
+        """Главная страница кэшируется"""
+        response_first = self.authorized_client.get(reverse('posts:index'))
+        Post.objects.create(
+            author=self.user,
+            text='test post',
+        )
+        response_second = self.authorized_client.get(
+            (reverse('posts:index'))
+        )
+        self.assertEqual(response_first.content,
+                         response_second.content)
+        cache.clear()
+        response_after_clear = self.authorized_client.get(
+            reverse('posts:index')
+        )
+        self.assertNotEqual(response_first.content,
+                            response_after_clear.content)
 
 
 class PaginatorViewsTest(TestCase):

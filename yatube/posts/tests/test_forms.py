@@ -6,7 +6,7 @@ from django.conf import settings
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..models import Post, Group
+from ..models import Post, Group, Comment
 from ..forms import PostForm
 
 from ..utils import uploaded_img
@@ -99,3 +99,39 @@ class PostFormTest(TestCase):
         for value, expected in last_edit_post_data:
             with self.subTest(value=value):
                 self.assertEqual(value, expected)
+
+
+class CommentFormTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create(username='test_user')
+        cls.form = PostForm
+        cls.post = Post.objects.create(
+            author=cls.user,
+            text='test post'
+        )
+
+    def setUp(self):
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
+
+    def test_authorized_client_add_comment(self):
+        """Публикация коммента авторизованным пользователем."""
+        comments_count = Comment.objects.count()
+        form_data = {
+            'author': self.user,
+            'post': self.post,
+            'text': 'test text'
+        }
+        response = self.authorized_client.post(
+            reverse('posts:add_comment',
+                    kwargs={'post_id': self.post.id}),
+            data=form_data,
+            follow=True
+        )
+        self.assertRedirects(
+            response,
+            reverse('users:login') + f'?next=/posts/{self.post.id}/comment/'
+        )
+        self.assertEqual(Comment.objects.count(), comments_count)

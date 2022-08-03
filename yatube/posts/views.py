@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
 from .models import Post, Group, User
-from .forms import PostForm
+from .forms import PostForm, CommentForm
 from .utils import get_page_context
 
 
@@ -47,8 +47,14 @@ def post_detail(request, post_id):
     """Выводит страницу отдельно взятого поста."""
     post_object = get_object_or_404(Post.objects.select_related(
         'group', 'author'), id=post_id)
+    comments = post_object.comments.all()
+    count = post_object.author.posts.count()
+    form = CommentForm(request.POST or None)
     context = {
         'post': post_object,
+        'comments': comments,
+        'form': form,
+        'count': count
     }
 
     return render(request, 'posts/post_detail.html', context)
@@ -100,3 +106,17 @@ def post_edit(request, post_id):
     }
 
     return render(request, 'posts/create_post.html', context)
+
+
+@login_required
+def add_comment(request, post_id):
+    """Возможность оставлять комментарии для авторизованного пользователя."""
+    post_object = get_object_or_404(Post, id=post_id)
+    form = CommentForm(request.POST or None)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.author = request.user
+        comment.post = post_object
+        comment.save()
+
+    return redirect('posts:post_detail', post_id=post_id)
